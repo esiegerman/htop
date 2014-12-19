@@ -491,7 +491,8 @@ static bool LinuxProcessList_processEntries(ProcessList* this, const char* dirna
          goto errorReadingProcess;
       if (this->flags & PROCESS_FLAG_IOPRIO)
          LinuxProcess_updateIOPriority((LinuxProcess*)process);
-      float percent_cpu = (process->utime + process->stime - lasttimes) / period * 100.0;
+      process->delta_cpu = process->utime + process->stime - lasttimes;
+      float percent_cpu = process->delta_cpu / period * 100.0;
       process->percent_cpu = MAX(MIN(percent_cpu, cpus*100.0), 0.0);
       if (isnan(process->percent_cpu)) process->percent_cpu = 0.0;
       process->percent_mem = (process->m_resident * PAGE_SIZE_KB) / (double)(this->totalMem) * 100.0;

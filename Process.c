@@ -67,7 +67,7 @@ typedef enum ProcessField_ {
    PID = 1, COMM, STATE, PPID, PGRP, SESSION, TTY_NR, TPGID, FLAGS, MINFLT, CMINFLT, MAJFLT, CMAJFLT, UTIME,
    STIME, CUTIME, CSTIME, PRIORITY, NICE, ITREALVALUE, STARTTIME, VSIZE, RSS, RLIM, STARTCODE, ENDCODE,
    STARTSTACK, KSTKESP, KSTKEIP, SIGNAL, BLOCKED, SSIGIGNORE, SIGCATCH, WCHAN, NSWAP, CNSWAP, EXIT_SIGNAL,
-   PROCESSOR, M_SIZE, M_RESIDENT, M_SHARE, M_TRS, M_DRS, M_LRS, M_DT, ST_UID, PERCENT_CPU, PERCENT_MEM,
+   PROCESSOR, M_SIZE, M_RESIDENT, M_SHARE, M_TRS, M_DRS, M_LRS, M_DT, ST_UID, DELTA_CPU, PERCENT_CPU, PERCENT_MEM,
    USER, TIME, NLWP, TGID,
    #ifdef HAVE_OPENVZ
    CTID, VPID,
@@ -119,6 +119,7 @@ typedef struct Process_ {
    unsigned long long int stime;
    unsigned long long int cutime;
    unsigned long long int cstime;
+   unsigned long long int delta_cpu;
    long int priority;
    long int nice;
    long int nlwp;
@@ -201,7 +202,7 @@ const char *Process_fieldNames[] = {
    "STARTTIME", "VSIZE", "RSS", "RLIM", "STARTCODE", "ENDCODE", "STARTSTACK",
    "KSTKESP", "KSTKEIP", "SIGNAL", "BLOCKED", "SIGIGNORE", "SIGCATCH", "WCHAN",
    "NSWAP", "CNSWAP", "EXIT_SIGNAL", "PROCESSOR", "M_SIZE", "M_RESIDENT", "M_SHARE",
-   "M_TRS", "M_DRS", "M_LRS", "M_DT", "ST_UID", "PERCENT_CPU", "PERCENT_MEM",
+   "M_TRS", "M_DRS", "M_LRS", "M_DT", "ST_UID", "DELTA_CPU", "PERCENT_CPU", "PERCENT_MEM",
    "USER", "TIME", "NLWP", "TGID", 
 #ifdef HAVE_OPENVZ
    "CTID", "VPID",
@@ -258,7 +259,7 @@ const char *Process_fieldTitles[] = {
    "START ", "- ", "- ", "- ", "- ", "- ", "- ",
    "- ", "- ", "- ", "- ", "- ", "- ", "- ",
    "- ", "- ", "- ", "CPU ", " VIRT ", "  RES ", "  SHR ",
-   " CODE ", " DATA ", " LIB ", " DIRTY ", " UID ", "CPU% ", "MEM% ",
+   " CODE ", " DATA ", " LIB ", " DIRTY ", " UID ", "CPUDELTA ", "CPU% ", "MEM% ",
    "USER      ", "  TIME+  ", "NLWP ", "   TGID ",
 #ifdef HAVE_OPENVZ
    "   CTID ", " VPID ",
@@ -580,6 +581,7 @@ static void Process_writeField(Process* this, RichString* str, ProcessField fiel
    case CUTIME: Process_printTime(str, this->cutime); return;
    case CSTIME: Process_printTime(str, this->cstime); return;
    case TIME: Process_printTime(str, this->utime + this->stime); return;
+   case DELTA_CPU: Process_printTime(str, this->delta_cpu); return;
    case PERCENT_CPU: {
       if (this->percent_cpu > 999.9) {
          snprintf(buffer, n, "%4d ", (unsigned int)this->percent_cpu); 
@@ -809,6 +811,8 @@ long Process_compare(const void* v1, const void* v2) {
       return (p2->m_resident - p1->m_resident);
    case M_SHARE:
       return (p2->m_share - p1->m_share);
+   case DELTA_CPU:
+      return (p2->delta_cpu > p1->delta_cpu ? 1 : -1);
    case PERCENT_CPU:
       return (p2->percent_cpu > p1->percent_cpu ? 1 : -1);
    case PERCENT_MEM:
