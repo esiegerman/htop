@@ -259,7 +259,7 @@ const char *Process_fieldTitles[] = {
    "START ", "- ", "- ", "- ", "- ", "- ", "- ",
    "- ", "- ", "- ", "- ", "- ", "- ", "- ",
    "- ", "- ", "- ", "CPU ", " VIRT ", "  RES ", "  SHR ",
-   " CODE ", " DATA ", " LIB ", " DIRTY ", " UID ", "CPUDELTA ", "CPU% ", "MEM% ",
+   " CODE ", " DATA ", " LIB ", " DIRTY ", " UID ", " CPU- ", "CPU% ", "MEM% ",
    "USER      ", "  TIME+  ", "NLWP ", "   TGID ",
 #ifdef HAVE_OPENVZ
    "   CTID ", " VPID ",
@@ -407,11 +407,15 @@ static void Process_colorNumber(RichString* str, unsigned long long number, bool
 
 static double jiffy = 0.0;
 
-static void Process_printTime(RichString* str, unsigned long long t) {
+static double Process_ticks2Seconds(unsigned long long t) {
    if(jiffy == 0.0) jiffy = sysconf(_SC_CLK_TCK);
    double jiffytime = 1.0 / jiffy;
 
-   double realTime = t * jiffytime;
+   return (t * jiffytime);
+}
+
+static void Process_printTime(RichString* str, unsigned long long t) {
+   double realTime = Process_ticks2Seconds(t);
    unsigned long long iRealTime = (unsigned long long) realTime;
 
    unsigned long long hours = iRealTime / 3600;
@@ -581,7 +585,19 @@ static void Process_writeField(Process* this, RichString* str, ProcessField fiel
    case CUTIME: Process_printTime(str, this->cutime); return;
    case CSTIME: Process_printTime(str, this->cstime); return;
    case TIME: Process_printTime(str, this->utime + this->stime); return;
-   case DELTA_CPU: Process_printTime(str, this->delta_cpu); return;
+   case DELTA_CPU: {
+      double realTime = Process_ticks2Seconds(this->delta_cpu);
+      if (realTime >= 1000) {
+	 snprintf(buffer, n, "%5.0f ", realTime);
+      } else if (realTime >= 100) {
+	 snprintf(buffer, n, "%5.1f ", realTime);
+      } else if (realTime >= 10) {
+	 snprintf(buffer, n, "%5.2f ", realTime);
+      } else {
+	 snprintf(buffer, n, "%5.3f ", realTime);
+      }
+      break;
+   }
    case PERCENT_CPU: {
       if (this->percent_cpu > 999.9) {
          snprintf(buffer, n, "%4d ", (unsigned int)this->percent_cpu); 
