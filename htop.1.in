@@ -268,6 +268,9 @@ The size of the dirty pages of the process.
 .B ST_UID (UID)
 The user ID of the process owner.
 .TP
+.B DELTA_CPU (CPU-)
+The amount of CPU time that the process has used since the previous update.
+.TP
 .B PERCENT_CPU (CPU%)
 The percentage of the CPU time that the process is currently using.
 .TP
